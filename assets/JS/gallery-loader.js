@@ -1,7 +1,7 @@
 // gallery-loader.js - Dynamically loads and sorts gallery images from GitHub repo
 
 const owner = 'TheAypisamFpv';
-const repo = 'Portfolio';
+const repo = 'Photography-Portfolio';
 const baseApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
 const baseImgUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/imgs`;
 
@@ -19,7 +19,6 @@ async function loadGallery() {
     if (!imgsRes.ok) throw new Error('Failed to fetch imgs directory');
     const imgsData = await imgsRes.json();
     const folders = imgsData.filter(item => item.type === 'dir').map(item => item.name);
-    console.log('Fetched folders:', folders);
 
     const sectionsData = [];
 
@@ -35,7 +34,6 @@ async function loadGallery() {
 
       // Filter _signed.webp files
       const signedFiles = folderData.filter(item => item.name.endsWith('_signed.webp'));
-      console.log(`Folder ${folder}: signedFiles`, signedFiles.map(f => f.name));
 
       const images = [];
 
@@ -50,7 +48,6 @@ async function loadGallery() {
 
       // Sort images by date descending
       images.sort((a, b) => b.date - a.date);
-      console.log(`Folder ${folder}: images`, images.map(i => ({ base: i.base, date: i.date })));
 
       sectionsData.push({ folder, sectionId, images });
     }
@@ -63,7 +60,6 @@ async function loadGallery() {
       if (maxA < maxB) return 1;
       return a.folder.localeCompare(b.folder);
     });
-    console.log('SectionsData:', sectionsData);
 
     // Populate DOM
     populateGallery(sectionsData);
@@ -90,21 +86,13 @@ async function getImageDate(imgUrl) {
 }
 
 function populateGallery(sectionsData) {
-  console.log('Populating gallery with:', sectionsData);
   const container = document.getElementById('gallery-container');
-  if (!container) {
-    console.log('Gallery container not found');
-    return;
-  }
+  if (!container) return;
   container.innerHTML = '';
 
   for (const { folder, sectionId, images } of sectionsData) {
-    if (images.length === 0) {
-      console.log(`Skipping empty section: ${folder}`);
-      continue;
-    }
+    if (images.length === 0) continue;
 
-    console.log(`Creating section for ${folder} with ${images.length} images`);
     const section = document.createElement('section');
     section.className = 'photo-section';
     section.id = sectionId;
@@ -121,7 +109,6 @@ function populateGallery(sectionsData) {
       img.src = `imgs/${folder}/${base}_preview.webp`;
       img.alt = base;
       img.loading = 'lazy';
-      console.log(`Adding image: ${img.src}`);
       grid.appendChild(img);
     }
 

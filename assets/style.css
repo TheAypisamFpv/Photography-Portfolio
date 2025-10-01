@@ -488,38 +488,40 @@ a:not(.project):hover:after {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 90%;
-    margin: 40px 0;
+    width: 100%;
+    max-width: 1400px;
+    margin: 40px auto;
     padding: 20px;
     background: var(--content-background);
     border-radius: 20px;
     box-shadow: var(--box-shadow);
 }
 
-.photo-section h1 {
+.photo-section h2 {
     margin-bottom: 20px;
     font-size: 2em;
     color: var(--header-color);
 }
 
-.photo-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, 300px);
-    gap: 15px;
+.photo-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 20px;
     width: 100%;
-    justify-items: center;
 }
 
-.photo-gallery img {
-    width: 300px;
-    height: 300px;
-    object-fit: cover;
-    border-radius: 15px;
-    box-shadow: var(--box-shadow);
-    transition: transform 0.3s ease;
+.photo-grid img {
+    width: 250px !important;
+    height: 250px !important;
+    object-fit: cover !important;
+    border-radius: 8px !important;
+    box-shadow: var(--box-shadow) !important;
+    transition: transform 0.3s ease !important;
+    cursor: pointer !important;
 }
 
-.photo-gallery img:hover {
+.photo-grid img:hover {
     transform: scale(1.05);
 }
 
@@ -596,13 +598,13 @@ a:not(.project):hover:after {
         width: 90%;
     }
 
-    .photo-gallery {
-        grid-template-columns: repeat(auto-fill, 225px);
+    .photo-grid {
+        grid-template-columns: repeat(auto-fill, 150px);
     }
 
-    .photo-gallery img {
-        width: 225px;
-        height: 225px;
+    .photo-grid img {
+        width: 150px !important;
+        height: 150px !important;
     }
 
     .footer_links {

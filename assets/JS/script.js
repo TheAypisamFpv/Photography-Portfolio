@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Photography Portfolio Lightbox
-const images = document.querySelectorAll('.photo-gallery img');
+let currentImages = [];
 let currentIndex = 0;
 let scale = 1;
 let translateX = 0;
@@ -100,7 +100,8 @@ function updateImageData(img, metadataDiv) {
     }
 }
 
-function openModal(index) {
+function openModal(clickedImg, imagesArray, index) {
+    currentImages = imagesArray;
     currentIndex = index;
     scale = 1; // Reset scale
     translateX = 0; // Reset position
@@ -123,7 +124,7 @@ function openModal(index) {
     modal.style.cursor = 'default'; // Default cursor (arrow)
 
     const img = document.createElement('img');
-    img.src = images[currentIndex].src;
+    img.src = clickedImg.src.replace('_preview.webp', '_signed.webp');
     img.onload = () => {
         console.log('onload fired for openModal');
         updateImageData(img, metadataDiv);
@@ -225,14 +226,14 @@ function closeModal() {
 function navigate(direction) {
     console.log('Navigate called with direction', direction);
     currentIndex += direction;
-    if (currentIndex < 0) currentIndex = images.length - 1;
-    if (currentIndex >= images.length) currentIndex = 0;
+    if (currentIndex < 0) currentIndex = currentImages.length - 1;
+    if (currentIndex >= currentImages.length) currentIndex = 0;
     console.log('New currentIndex', currentIndex);
     const modalImg = document.querySelector('#image-modal img');
     const metadataDiv = document.querySelector('#image-metadata');
     if (modalImg) {
-        console.log('Setting src to', images[currentIndex].src);
-                modalImg.src = img.src.replace('_preview.webp', '_signed.webp');
+        console.log('Setting src to', currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp'));
+        modalImg.src = currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp');
         modalImg.onload = () => {
             console.log('onload fired for navigation');
             updateImageData(modalImg, metadataDiv);
@@ -247,8 +248,18 @@ function navigate(direction) {
     }
 }
 
-images.forEach((img, index) => {
-    img.addEventListener('click', () => openModal(index));
+document.addEventListener('DOMContentLoaded', function() {
+    const galleryContainer = document.getElementById('gallery-container');
+    if (galleryContainer) {
+        galleryContainer.addEventListener('click', function(e) {
+            if (e.target.tagName === 'IMG') {
+                const grid = e.target.closest('.photo-grid');
+                const imagesArray = Array.from(grid.querySelectorAll('img'));
+                const index = imagesArray.indexOf(e.target);
+                openModal(e.target, imagesArray, index);
+            }
+        });
+    }
 });
 
 document.addEventListener('keydown', (e) => {
