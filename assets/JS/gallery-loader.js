@@ -13,76 +13,38 @@ const sectionMap = {
 };
 
 async function loadGallery() {
-  try {
-    // Fetch folders in imgs/
-    const imgsRes = await fetch(`${baseApiUrl}/imgs`);
-    if (!imgsRes.ok) throw new Error('Failed to fetch imgs directory');
-    const imgsData = await imgsRes.json();
-    const folders = imgsData.filter(item => item.type === 'dir').map(item => item.name);
+  // For local development, hardcode the images since GitHub API has CORS issues locally
+  const imageBases = {
+    'Animals': ['_DSF1058', '_DSF1066-01', '_DSF1144-01'],
+    'Monochrome': [],
+    'Nature': [],
+    'Street & Architecture': ['_DSF0339-01', '_DSF1013', 'IMG_20250922_233432']
+  };
 
-    const sectionsData = [];
+  const sectionsData = [];
 
-    // Process each folder
-    for (const folder of folders) {
-      const sectionId = sectionMap[folder];
-      if (!sectionId) continue;
+  for (const folder of Object.keys(imageBases)) {
+    const sectionId = sectionMap[folder];
+    if (!sectionId) continue;
 
-      // Fetch files in folder
-      const folderRes = await fetch(`${baseApiUrl}/imgs/${folder}`);
-      if (!folderRes.ok) continue;
-      const folderData = await folderRes.json();
+    const images = imageBases[folder].map(base => ({ base, date: new Date(0) }));
 
-      // Filter _signed.webp files
-      const signedFiles = folderData.filter(item => item.name.endsWith('_signed.webp'));
-
-      const images = [];
-
-      // Load each image to get EXIF date
-      for (const file of signedFiles) {
-        const base = file.name.replace('_signed.webp', '');
-        const imgUrl = `${baseImgUrl}/${folder}/${file.name}`;
-
-        const date = await getImageDate(imgUrl);
-        images.push({ base, date });
-      }
-
-      // Sort images by date descending
-      images.sort((a, b) => b.date - a.date);
-
-      sectionsData.push({ folder, sectionId, images });
-    }
-
-    // Sort sections by newest image date, then alphabetical
-    sectionsData.sort((a, b) => {
-      const maxA = a.images.length ? Math.max(...a.images.map(i => i.date)) : 0;
-      const maxB = b.images.length ? Math.max(...b.images.map(i => i.date)) : 0;
-      if (maxA > maxB) return -1;
-      if (maxA < maxB) return 1;
-      return a.folder.localeCompare(b.folder);
-    });
-
-    // Populate DOM
-    populateGallery(sectionsData);
-
-  } catch (error) {
-    console.error('Error loading gallery:', error);
+    sectionsData.push({ folder, sectionId, images });
   }
-}
 
-async function getImageDate(imgUrl) {
-  return new Promise((resolve) => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      EXIF.getData(img, function() {
-        const dateTag = EXIF.getTag(this, 'DateTimeOriginal') || EXIF.getTag(this, 'DateTime');
-        const date = dateTag ? new Date(dateTag.replace(/:/g, '-').replace(' ', 'T')) : new Date(0);
-        resolve(date);
-      });
-    };
-    img.onerror = () => resolve(new Date(0));
-    img.src = imgUrl;
-  });
+  // Sort sections alphabetically
+  sectionsData.sort((a, b) => a.folder.localeCompare(b.folder));
+
+  populateGallery(sectionsData);
+}async function getImageDate(imgUrl) {
+  try {
+    const tags = await exifr.parse(imgUrl);
+    const dateTag = tags.DateTimeOriginal || tags.DateTime;
+    const date = dateTag ? new Date(dateTag.replace(/:/g, '-').replace(' ', 'T')) : new Date(0);
+    return date;
+  } catch {
+    return new Date(0);
+  }
 }
 
 function populateGallery(sectionsData) {

@@ -17,33 +17,36 @@ window.addEventListener('scroll', function () {
     lastScrollTop = scrollTop;
 });
 
-const themeSwitcher = document.getElementById('theme-switcher');
-const moonIcon = document.querySelector('#moon-icon');
-const sunIcon = document.querySelector('#sun-icon');
-const body = document.body;
-
-themeSwitcher.addEventListener('click', () => {
-    if (body.classList.contains('dark-theme')) {
-        body.classList.remove('dark-theme');
-        body.classList.add('light-theme');
-        moonIcon.classList.remove('shown');
-        moonIcon.classList.add('hidden');
-        sunIcon.classList.remove('hidden');
-        sunIcon.classList.add('shown');
-    } else {
-        body.classList.remove('light-theme');
-        body.classList.add('dark-theme');
-        moonIcon.classList.remove('hidden');
-        moonIcon.classList.add('shown');
-        sunIcon.classList.remove('shown');
-        sunIcon.classList.add('hidden');
-    }
-});
-
 document.addEventListener('DOMContentLoaded', function() {
     const currentYear = new Date().getFullYear();
     const footerCredits = document.querySelector('.footer_credits p');
     footerCredits.textContent = `© ${currentYear} TheAypisamFpv`;
+
+    // Theme switcher
+    const themeSwitcher = document.getElementById('theme-switcher');
+    const moonIcon = document.querySelector('#moon-icon');
+    const sunIcon = document.querySelector('#sun-icon');
+    const body = document.body;
+
+    if (themeSwitcher) {
+        themeSwitcher.addEventListener('click', () => {
+            if (body.classList.contains('dark-theme')) {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                moonIcon.classList.remove('shown');
+                moonIcon.classList.add('hidden');
+                sunIcon.classList.remove('hidden');
+                sunIcon.classList.add('shown');
+            } else {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                moonIcon.classList.remove('hidden');
+                moonIcon.classList.add('shown');
+                sunIcon.classList.remove('shown');
+                sunIcon.classList.add('hidden');
+            }
+        });
+    }
 });
 
 // Photography Portfolio Lightbox
@@ -56,48 +59,21 @@ let isDragging = false;
 let startX, startY;
 let maxScale = 1.5; // Default, will be updated per image
 
-// Load EXIF library
-const exifScript = document.createElement('script');
-exifScript.src = 'https://cdn.jsdelivr.net/npm/exif-js';
-document.head.appendChild(exifScript);
-
-function updateImageData(img, metadataDiv) {
-    console.log('updateImageData called for', img.src);
-    const displayedWidth = img.offsetWidth;
-    const displayedHeight = img.offsetHeight;
-    const scaleX = img.naturalWidth / displayedWidth;
-    const scaleY = img.naturalHeight / displayedHeight;
-    maxScale = Math.max(scaleX, scaleY) * 1.5;
-    console.log('maxScale set to', maxScale);
-    // Read EXIF data
-    if (window.EXIF) {
-        console.log('EXIF available, calling getData');
-        img.exifdata = null; // Clear previous EXIF data
-        EXIF.getData(img, function() {
-            const make = EXIF.getTag(this, 'Make') || 'Unknown';
-            const model = EXIF.getTag(this, 'Model') || 'Unknown';
-            const aperture = EXIF.getTag(this, 'FNumber') ? `f/${EXIF.getTag(this, 'FNumber')}` : 'N/A';
-            const exposureTime = EXIF.getTag(this, 'ExposureTime');
-            let shutterSpeed = 'N/A';
-            if (exposureTime) {
-                const num = parseFloat(exposureTime);
-                if (num < 1) {
-                    const denom = Math.round(1 / num);
-                    shutterSpeed = `1/${denom}`;
-                } else {
-                    shutterSpeed = `${num}"`;
-                }
+function loadMetadata(txtUrl, metadataDiv) {
+    metadataDiv.textContent = 'Loading metadata...';
+    fetch(txtUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('File not found');
             }
-            const focalLength = EXIF.getTag(this, 'FocalLength') ? `${EXIF.getTag(this, 'FocalLength')}mm` : 'N/A';
-            const iso = EXIF.getTag(this, 'ISOSpeedRatings') || 'N/A';
-            const metadataText = `${make} ${model} | Aperture: ${aperture} | Shutter: ${shutterSpeed} | Focal: ${focalLength} | ISO: ${iso}`;
-            metadataDiv.textContent = metadataText;
+            return response.text();
+        })
+        .then(text => {
+            metadataDiv.textContent = text.trim();
+        })
+        .catch(() => {
+            metadataDiv.textContent = 'Metadata not available';
         });
-    } else {
-        console.log('EXIF not available, retrying');
-        // Retry after delay
-        setTimeout(() => updateImageData(img, metadataDiv), 100);
-    }
 }
 
 function openModal(clickedImg, imagesArray, index) {
@@ -126,8 +102,11 @@ function openModal(clickedImg, imagesArray, index) {
     const img = document.createElement('img');
     img.src = clickedImg.src.replace('_preview.webp', '_signed.webp');
     img.onload = () => {
-        console.log('onload fired for openModal');
-        updateImageData(img, metadataDiv);
+        const displayedWidth = img.offsetWidth;
+        const displayedHeight = img.offsetHeight;
+        const scaleX = img.naturalWidth / displayedWidth;
+        const scaleY = img.naturalHeight / displayedHeight;
+        maxScale = Math.max(scaleX, scaleY) * 1.5;
     };
     img.style.maxWidth = '90%';
     img.style.maxHeight = '80%'; // Leave space for metadata
@@ -174,7 +153,7 @@ function openModal(clickedImg, imagesArray, index) {
     metadataDiv.style.fontSize = '14px';
     metadataDiv.style.textAlign = 'center';
     metadataDiv.style.maxWidth = '90%';
-    metadataDiv.textContent = 'Loading metadata...';
+    loadMetadata(clickedImg.src.replace('_preview.webp', '_signed.txt'), metadataDiv);
 
     const handleMouseMove = (e) => {
         if (isDragging) {
@@ -235,10 +214,13 @@ function navigate(direction) {
         console.log('Setting src to', currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp'));
         modalImg.src = currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp');
         modalImg.onload = () => {
-            console.log('onload fired for navigation');
-            updateImageData(modalImg, metadataDiv);
+            const displayedWidth = modalImg.offsetWidth;
+            const displayedHeight = modalImg.offsetHeight;
+            const scaleX = modalImg.naturalWidth / displayedWidth;
+            const scaleY = modalImg.naturalHeight / displayedHeight;
+            maxScale = Math.max(scaleX, scaleY) * 1.5;
         };
-        if (metadataDiv) metadataDiv.textContent = 'Loading metadata...';
+        loadMetadata(currentImages[currentIndex].src.replace('_preview.webp', '_signed.txt'), metadataDiv);
         scale = 1;
         translateX = 0;
         translateY = 0;
