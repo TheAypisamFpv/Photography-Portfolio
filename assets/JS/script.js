@@ -3,19 +3,20 @@ window.onload = function () {
     elements.forEach(element => element.classList.add('animate'));
 };
 
-
 let lastScrollTop = 0;
 const header = document.getElementById('header');
 
-window.addEventListener('scroll', function () {
-    let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-    if (scrollTop > lastScrollTop && scrollTop > 50) {
-        header.classList.add('header-hide');
-    } else if (scrollTop < lastScrollTop) {
-        header.classList.remove('header-hide');
-    }
-    lastScrollTop = scrollTop;
-});
+if (header) {
+    window.addEventListener('scroll', function () {
+        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        if (scrollTop > lastScrollTop && scrollTop > 50) {
+            header.classList.add('header-hide');
+        } else if (scrollTop < lastScrollTop) {
+            header.classList.remove('header-hide');
+        }
+        lastScrollTop = scrollTop;
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const currentYear = new Date().getFullYear();
@@ -47,6 +48,21 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Header hide functionality
+    const header = document.getElementById('header');
+    if (header) {
+        let lastScrollTop = 0;
+        window.addEventListener('scroll', function () {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > lastScrollTop && scrollTop > 50) {
+                header.classList.add('header-hide');
+            } else if (scrollTop < lastScrollTop) {
+                header.classList.remove('header-hide');
+            }
+            lastScrollTop = scrollTop;
+        });
+    }
 });
 
 // Photography Portfolio Lightbox
@@ -59,7 +75,14 @@ let isDragging = false;
 let startX, startY;
 let maxScale = 1.5; // Default, will be updated per image
 
+// Cache for metadata to avoid repeated fetches
+const metadataCache = new Map();
+
 function loadMetadata(txtUrl, metadataDiv) {
+    if (metadataCache.has(txtUrl)) {
+        metadataDiv.textContent = metadataCache.get(txtUrl);
+        return;
+    }
     metadataDiv.textContent = 'Loading metadata...';
     fetch(txtUrl)
         .then(response => {
@@ -69,9 +92,12 @@ function loadMetadata(txtUrl, metadataDiv) {
             return response.text();
         })
         .then(text => {
-            metadataDiv.textContent = text.trim();
+            const trimmedText = text.trim();
+            metadataCache.set(txtUrl, trimmedText);
+            metadataDiv.textContent = trimmedText;
         })
         .catch(() => {
+            metadataCache.set(txtUrl, 'Metadata not available');
             metadataDiv.textContent = 'Metadata not available';
         });
 }
@@ -115,6 +141,7 @@ function openModal(clickedImg, imagesArray, index) {
     img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     img.style.transformOrigin = 'center';
     img.style.cursor = scale > 1 ? 'grab' : 'default';
+    img.style.zIndex = '999';
     img.addEventListener('click', (e) => e.stopPropagation()); // Prevent closing when clicking on image
     img.addEventListener('wheel', (e) => {
         e.preventDefault();

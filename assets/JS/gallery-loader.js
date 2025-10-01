@@ -56,7 +56,7 @@ function populateGallery(sectionsData) {
     if (images.length === 0) continue;
 
     const section = document.createElement('section');
-    section.className = 'photo-section';
+    section.className = 'photo-section animate';
     section.id = sectionId;
 
     const h2 = document.createElement('h2');
@@ -64,13 +64,14 @@ function populateGallery(sectionsData) {
     section.appendChild(h2);
 
     const grid = document.createElement('div');
-    grid.className = 'photo-grid';
+    grid.className = 'photo-grid animate';
 
     for (const { base } of images) {
       const img = document.createElement('img');
-      img.src = `imgs/${folder}/${base}_preview.webp`;
+      img.src = `${baseImgUrl}/${folder}/${base}_preview.webp`;
       img.alt = base;
       img.loading = 'lazy';
+      img.classList.add('animate');
       grid.appendChild(img);
     }
 

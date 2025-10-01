@@ -512,13 +512,13 @@ a:not(.project):hover:after {
 }
 
 .photo-grid img {
-    width: 250px !important;
-    height: 250px !important;
-    object-fit: cover !important;
-    border-radius: 8px !important;
-    box-shadow: var(--box-shadow) !important;
-    transition: transform 0.3s ease !important;
-    cursor: pointer !important;
+    width: 250px ;
+    height: 250px ;
+    object-fit: cover ;
+    border-radius: 8px ;
+    box-shadow: var(--box-shadow) ;
+    transition: transform 0.3s ease ;
+    cursor: pointer ;
 }
 
 .photo-grid img:hover {
@@ -532,11 +532,12 @@ a:not(.project):hover:after {
     top: 50%;
     transform: translateY(-50%);
     font-size: 3em;
-    color: var(--arrow-color);
+    color: rgba(255, 255, 255, 0.5);
     text-decoration: none;
     cursor: pointer;
     user-select: none;
     transition: color 0.3s ease;
+    z-index: 1001;
 }
 
 #image-modal .prev:hover,
@@ -603,8 +604,8 @@ a:not(.project):hover:after {
     }
 
     .photo-grid img {
-        width: 150px !important;
-        height: 150px !important;
+        width: 150px ;
+        height: 150px ;
     }
 
     .footer_links {
