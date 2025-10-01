@@ -491,7 +491,7 @@ a:not(.project):hover:after {
     width: 100%;
     max-width: 1400px;
     margin: 40px auto;
-    padding: 20px;
+    padding: 20px 20px 15px 20px;
     background: var(--content-background);
     border-radius: 20px;
     box-shadow: var(--box-shadow);
@@ -507,24 +507,32 @@ a:not(.project):hover:after {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-start;
-    gap: 20px;
+    gap: 8px;
+    /* Tightened spacing, adjustable if needed */
     width: 100%;
+    overflow: visible;
 }
 
 .photo-grid img {
-    width: 250px ;
-    height: 250px ;
-    object-fit: cover ;
-    border-radius: 8px ;
-    box-shadow: var(--box-shadow) ;
-    transition: transform 0.3s ease ;
-    cursor: pointer ;
+    width: 250px;
+    height: 250px;
+    object-fit: cover;
+    border-radius: 15px;
+    /* Always applies rounded corners */
+    clip-path: inset(10px round 15px);
+    /* Clips to ~230x230 with rounded corners */
+    transition: clip-path 0.3s ease, transform 0.3s ease;
+    /* Smooth reveal and scale */
+    cursor: pointer;
+    margin: -5px;
 }
 
 .photo-grid img:hover {
-    transform: scale(1.05);
+    clip-path: inset(0 round 15px);
+    /* Uncovers full 250x250 with rounded corners */
+    transform: scale(1.04);
+    /* Subtle zoom on hover */
 }
-
 /* Lightbox Modal Styles */
 #image-modal .prev,
 #image-modal .next {
@@ -553,10 +561,11 @@ a:not(.project):hover:after {
     right: 20px;
 }
 
-/* Image Metadata */
-#image-metadata {
+/* Image EXIF */
+#image-exif {
     color: white;
     font-size: 14px;
+    font-style: italic;
     text-align: center;
     margin-top: 10px;
     max-width: 90%;
@@ -601,6 +610,7 @@ a:not(.project):hover:after {
 
     .photo-grid {
         grid-template-columns: repeat(auto-fill, 150px);
+        justify-content: center;
     }
 
     .photo-grid img {

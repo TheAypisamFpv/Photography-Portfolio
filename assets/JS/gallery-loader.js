@@ -58,6 +58,9 @@ function populateGallery(sectionsData) {
     const section = document.createElement('section');
     section.className = 'photo-section animate';
     section.id = sectionId;
+    section.addEventListener('animationend', () => {
+      section.classList.remove('animate');
+    }, { once: true });
 
     const h2 = document.createElement('h2');
     h2.textContent = folder;
@@ -65,14 +68,25 @@ function populateGallery(sectionsData) {
 
     const grid = document.createElement('div');
     grid.className = 'photo-grid animate';
+    grid.addEventListener('animationend', () => {
+      grid.classList.remove('animate');
+    }, { once: true });
 
+    // Inside populateGallery function, replace the img creation part:
     for (const { base } of images) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'photo-item'; // New wrapper class
+
       const img = document.createElement('img');
       img.src = `${baseImgUrl}/${folder}/${base}_preview.webp`;
       img.alt = base;
-      img.loading = 'lazy';
       img.classList.add('animate');
-      grid.appendChild(img);
+      img.addEventListener('animationend', () => {
+        img.classList.remove('animate');
+      }, { once: true });
+
+      wrapper.appendChild(img);
+      grid.appendChild(wrapper);
     }
 
     section.appendChild(grid);

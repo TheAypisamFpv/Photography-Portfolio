@@ -1,6 +1,11 @@
 window.onload = function () {
     const elements = document.querySelectorAll('body > *:not(footer):not(script):not(header)');
-    elements.forEach(element => element.classList.add('animate'));
+    elements.forEach(element => {
+        element.classList.add('animate');
+        element.addEventListener('animationend', () => {
+            element.classList.remove('animate');
+        }, { once: true });
+    });
 };
 
 let lastScrollTop = 0;
@@ -83,7 +88,7 @@ function loadMetadata(txtUrl, metadataDiv) {
         metadataDiv.textContent = metadataCache.get(txtUrl);
         return;
     }
-    metadataDiv.textContent = 'Loading metadata...';
+    metadataDiv.textContent = 'Loading EXIF...';
     fetch(txtUrl)
         .then(response => {
             if (!response.ok) {
@@ -97,12 +102,12 @@ function loadMetadata(txtUrl, metadataDiv) {
             metadataDiv.textContent = trimmedText;
         })
         .catch(() => {
-            metadataCache.set(txtUrl, 'Metadata not available');
-            metadataDiv.textContent = 'Metadata not available';
+            metadataCache.set(txtUrl, 'EXIF not available');
+            metadataDiv.textContent = 'EXIF not available';
         });
 }
 
-function openModal(clickedImg, imagesArray, index) {
+function openModal(clickedImg, imagesArray, index, sectionName) {
     currentImages = imagesArray;
     currentIndex = index;
     scale = 1; // Reset scale
@@ -173,8 +178,16 @@ function openModal(clickedImg, imagesArray, index) {
         }
     });
 
+    const titleDiv = document.createElement('div');
+    titleDiv.textContent = sectionName;
+    titleDiv.style.color = 'white';
+    titleDiv.style.fontSize = '32px';
+    titleDiv.style.textAlign = 'center';
+    titleDiv.style.marginBottom = '10px';
+    titleDiv.style.zIndex = '998';
+
     const metadataDiv = document.createElement('div');
-    metadataDiv.id = 'image-metadata';
+    metadataDiv.id = 'image-exif';
     metadataDiv.style.marginTop = '10px';
     metadataDiv.style.color = 'white';
     metadataDiv.style.fontSize = '14px';
@@ -211,6 +224,7 @@ function openModal(clickedImg, imagesArray, index) {
     nextBtn.addEventListener('click', (e) => { e.stopPropagation(); navigate(1); });
 
     modal.appendChild(prevBtn);
+    modal.appendChild(titleDiv);
     modal.appendChild(img);
     modal.appendChild(metadataDiv);
     modal.appendChild(nextBtn);
@@ -236,18 +250,21 @@ function navigate(direction) {
     if (currentIndex >= currentImages.length) currentIndex = 0;
     console.log('New currentIndex', currentIndex);
     const modalImg = document.querySelector('#image-modal img');
-    const metadataDiv = document.querySelector('#image-metadata');
+    const metadataDiv = document.querySelector('#image-exif');
     if (modalImg) {
+        modalImg.style.display = 'none';
+        metadataDiv.textContent = 'Loading next image...';
         console.log('Setting src to', currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp'));
         modalImg.src = currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp');
         modalImg.onload = () => {
+            modalImg.style.display = 'block';
             const displayedWidth = modalImg.offsetWidth;
             const displayedHeight = modalImg.offsetHeight;
             const scaleX = modalImg.naturalWidth / displayedWidth;
             const scaleY = modalImg.naturalHeight / displayedHeight;
             maxScale = Math.max(scaleX, scaleY) * 1.5;
+            loadMetadata(currentImages[currentIndex].src.replace('_preview.webp', '_signed.txt'), metadataDiv);
         };
-        loadMetadata(currentImages[currentIndex].src.replace('_preview.webp', '_signed.txt'), metadataDiv);
         scale = 1;
         translateX = 0;
         translateY = 0;
@@ -263,9 +280,11 @@ document.addEventListener('DOMContentLoaded', function() {
         galleryContainer.addEventListener('click', function(e) {
             if (e.target.tagName === 'IMG') {
                 const grid = e.target.closest('.photo-grid');
+                const section = grid.closest('.photo-section');
+                const sectionName = section.querySelector('h2').textContent;
                 const imagesArray = Array.from(grid.querySelectorAll('img'));
                 const index = imagesArray.indexOf(e.target);
-                openModal(e.target, imagesArray, index);
+                openModal(e.target, imagesArray, index, sectionName);
             }
         });
     }
