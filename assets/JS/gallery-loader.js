@@ -5,37 +5,51 @@ const repo = 'Photography-Portfolio';
 const baseApiUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
 const baseImgUrl = `https://raw.githubusercontent.com/${owner}/${repo}/main/imgs`;
 
-const sectionMap = {
-  'Animals': 'animals',
-  'Monochrome': 'monochrome',
-  'Nature': 'nature',
-  'Street & Architecture': 'street-architecture'
-};
-
 async function loadGallery() {
-  // For local development, hardcode the images since GitHub API has CORS issues locally
-  const imageBases = {
-    'Animals': ['_DSF1058', '_DSF1066-01', '_DSF1144-01'],
-    'Monochrome': [],
-    'Nature': [],
-    'Street & Architecture': ['_DSF0339-01', '_DSF1013', 'IMG_20250922_233432']
-  };
+  try {
+    // Fetch the contents of the imgs directory
+    const response = await fetch(`${baseApiUrl}/imgs`);
+    if (!response.ok) throw new Error('Failed to fetch imgs directory');
+    const items = await response.json();
 
-  const sectionsData = [];
+    // Filter for directories (folders)
+    const folders = items.filter(item => item.type === 'dir');
 
-  for (const folder of Object.keys(imageBases)) {
-    const sectionId = sectionMap[folder];
-    if (!sectionId) continue;
+    const sectionsData = [];
 
-    const images = imageBases[folder].map(base => ({ base, date: new Date(0) }));
+    for (const folder of folders) {
+      const folderName = folder.name;
+      const sectionId = folderName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
 
-    sectionsData.push({ folder, sectionId, images });
+      // Fetch contents of the folder
+      const folderResponse = await fetch(`${baseApiUrl}/imgs/${folderName}`);
+      if (!folderResponse.ok) continue; // Skip if can't fetch
+      const files = await folderResponse.json();
+
+      // Filter for preview images
+      const previewFiles = files.filter(file => file.name.endsWith('_preview.webp'));
+
+      const images = [];
+      for (const file of previewFiles) {
+        const base = file.name.replace('_preview.webp', '');
+        const imgUrl = `${baseImgUrl}/${folderName}/${file.name}`;
+        const date = await getImageDate(imgUrl);
+        images.push({ base, date });
+      }
+
+      // Sort images by date descending (newest first)
+      images.sort((a, b) => b.date - a.date);
+
+      sectionsData.push({ folder: folderName, sectionId, images });
+    }
+
+    // Sort sections alphabetically
+    sectionsData.sort((a, b) => a.folder.localeCompare(b.folder));
+
+    populateGallery(sectionsData);
+  } catch (error) {
+    console.error('Error loading gallery:', error);
   }
-
-  // Sort sections alphabetically
-  sectionsData.sort((a, b) => a.folder.localeCompare(b.folder));
-
-  populateGallery(sectionsData);
 }async function getImageDate(imgUrl) {
   try {
     const tags = await exifr.parse(imgUrl);
