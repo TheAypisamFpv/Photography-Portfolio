@@ -15,7 +15,12 @@ async function loadGallery() {
     // Filter for directories (folders)
     const folders = items.filter(item => item.type === 'dir');
 
-    const sectionsData = [];
+    // Sort folders alphabetically
+    folders.sort((a, b) => a.name.localeCompare(b.name));
+
+    const container = document.getElementById('gallery-container');
+    if (!container) return;
+    container.innerHTML = '';
 
     for (const folder of folders) {
       const folderName = folder.name;
@@ -29,82 +34,76 @@ async function loadGallery() {
       // Filter for preview images
       const previewFiles = files.filter(file => file.name.endsWith('_preview.webp'));
 
+      if (previewFiles.length === 0) continue;
+
+      const section = document.createElement('section');
+      section.className = 'photo-section animate';
+      section.id = sectionId;
+      section.addEventListener('animationend', () => {
+        section.classList.remove('animate');
+      }, { once: true });
+
+      const h2 = document.createElement('h2');
+      h2.textContent = folderName;
+      section.appendChild(h2);
+
+      const grid = document.createElement('div');
+      grid.className = 'photo-grid animate';
+      grid.addEventListener('animationend', () => {
+        grid.classList.remove('animate');
+      }, { once: true });
+
+      section.appendChild(grid);
+      container.appendChild(section);
+
       const images = [];
+
       for (const file of previewFiles) {
         const base = file.name.replace('_preview.webp', '');
         const imgUrl = `${baseImgUrl}/${folderName}/${file.name}`;
-        const date = await getImageDate(imgUrl);
-        images.push({ base, date });
+        getImageDate(imgUrl).then(date => {
+          const wrapper = document.createElement('div');
+          wrapper.className = 'photo-item';
+
+          const img = document.createElement('img');
+          img.src = imgUrl;
+          img.alt = base;
+          img.classList.add('animate');
+          img.addEventListener('animationend', () => {
+            img.classList.remove('animate');
+          }, { once: true });
+
+          wrapper.appendChild(img);
+          grid.appendChild(wrapper);
+
+          images.push({ date, element: wrapper });
+
+          // When all images for this section are loaded, sort them
+          if (images.length === previewFiles.length) {
+            images.sort((a, b) => b.date - a.date);
+            images.forEach(item => grid.appendChild(item.element));
+          }
+        });
       }
-
-      // Sort images by date descending (newest first)
-      images.sort((a, b) => b.date - a.date);
-
-      sectionsData.push({ folder: folderName, sectionId, images });
     }
-
-    // Sort sections alphabetically
-    sectionsData.sort((a, b) => a.folder.localeCompare(b.folder));
-
-    populateGallery(sectionsData);
   } catch (error) {
     console.error('Error loading gallery:', error);
   }
 }async function getImageDate(imgUrl) {
   try {
-    const tags = await exifr.parse(imgUrl);
-    const dateTag = tags.DateTimeOriginal || tags.DateTime;
-    const date = dateTag ? new Date(dateTag.replace(/:/g, '-').replace(' ', 'T')) : new Date(0);
-    return date;
+    const txtUrl = imgUrl.replace('_preview.webp', '_signed.txt');
+    const response = await fetch(txtUrl);
+    if (!response.ok) return new Date(0);
+    const text = await response.text();
+    // Parse date in format DD/MM/YYYY HH:MM
+    const match = text.match(/(\d{2})\/(\d{2})\/(\d{4}) (\d{2}):(\d{2})/);
+    if (match) {
+      const [, day, month, year, hour, minute] = match;
+      return new Date(`${year}-${month}-${day}T${hour}:${minute}:00`);
+    }
+    return new Date(0);
   } catch {
     return new Date(0);
-  }
-}
-
-function populateGallery(sectionsData) {
-  const container = document.getElementById('gallery-container');
-  if (!container) return;
-  container.innerHTML = '';
-
-  for (const { folder, sectionId, images } of sectionsData) {
-    if (images.length === 0) continue;
-
-    const section = document.createElement('section');
-    section.className = 'photo-section animate';
-    section.id = sectionId;
-    section.addEventListener('animationend', () => {
-      section.classList.remove('animate');
-    }, { once: true });
-
-    const h2 = document.createElement('h2');
-    h2.textContent = folder;
-    section.appendChild(h2);
-
-    const grid = document.createElement('div');
-    grid.className = 'photo-grid animate';
-    grid.addEventListener('animationend', () => {
-      grid.classList.remove('animate');
-    }, { once: true });
-
-    // Inside populateGallery function, replace the img creation part:
-    for (const { base } of images) {
-      const wrapper = document.createElement('div');
-      wrapper.className = 'photo-item'; // New wrapper class
-
-      const img = document.createElement('img');
-      img.src = `${baseImgUrl}/${folder}/${base}_preview.webp`;
-      img.alt = base;
-      img.classList.add('animate');
-      img.addEventListener('animationend', () => {
-        img.classList.remove('animate');
-      }, { once: true });
-
-      wrapper.appendChild(img);
-      grid.appendChild(wrapper);
-    }
-
-    section.appendChild(grid);
-    container.appendChild(section);
   }
 }
 
