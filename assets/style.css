@@ -494,7 +494,7 @@ a:not(.project):hover:after {
 /* Photography Portfolio Styles */
 #toc {
     margin: 20px auto;
-    max-width: 80%;
+    max-width: 90%;
     text-align: center;
 }
 
@@ -510,6 +510,7 @@ a:not(.project):hover:after {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
+    align-items: center;
     gap: 15px;
 }
 
@@ -733,5 +734,10 @@ a:not(.project):hover:after {
         width: 100%;
         height: auto;
         object-fit: cover;
+    }
+
+    #toc li {
+        width: 40%;
+        min-width: 10em;
     }
 }
