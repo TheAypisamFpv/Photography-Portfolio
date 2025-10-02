@@ -548,6 +548,7 @@ a:not(.project):hover:after {
     margin-bottom: 20px;
     font-size: 2em;
     color: var(--header-color);
+    text-align: center;
 }
 
 .photo-grid {
@@ -560,8 +561,8 @@ a:not(.project):hover:after {
 }
 
 .photo-grid img {
-    width: 225px;
-    height: 225px;
+    width: 175px;
+    height: 175px;
     object-fit: cover;
     border-radius: 15px;
     /* Always applies rounded corners */
@@ -654,20 +655,6 @@ a:not(.project):hover:after {
         width: 90%;
     }
 
-    .photo-section {
-        max-width: 95%;
-    }
-
-    .photo-grid {
-        grid-template-columns: repeat(auto-fill, 125px);
-        justify-content: center;
-    }
-
-    .photo-grid img {
-        width: 125px;
-        height: 125px ;
-    }
-
     .footer_links {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -717,5 +704,21 @@ a:not(.project):hover:after {
     /* If X isn't the only item in the last row but needs centering */
     .footer_links a:last-child {
         justify-self: center;
+    }
+
+    .photo-section {
+        max-width: 90%;
+        padding: 10px 10px 15px 10px;
+    }
+
+    .photo-grid {
+        grid-template-columns: repeat(auto-fill, 125px);
+        justify-content: center;
+        gap: 4px;
+    }
+
+    .photo-grid img {
+        width: 125px;
+        height: 125px;   
     }
 }
