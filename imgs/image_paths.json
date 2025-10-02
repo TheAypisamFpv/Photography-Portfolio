@@ -13,14 +13,14 @@
         "IMG_20250718_223544~2_signed.webp",
         "IMG_20250814_221940_signed.webp",
         "IMG_20250822_232445_signed.webp",
-        "_DSF1058_signed.webp",
-        "_DSF1066-01_signed.webp",
-        "_DSF1103_signed.webp",
-        "_DSF1129_signed.webp",
-        "_DSF1144-01_signed.webp",
-        "_DSF1197_signed.webp",
-        "_IMG6608-01_signed.webp",
-        "_IMG6661-01_signed.webp"
+        "DSF1058_signed.webp",
+        "DSF1066-01_signed.webp",
+        "DSF1103_signed.webp",
+        "DSF1129_signed.webp",
+        "DSF1144-01_signed.webp",
+        "DSF1197_signed.webp",
+        "IMG6608-01_signed.webp",
+        "IMG6661-01_signed.webp"
     ],
     "Aviation & Technology": [
         "IMG20240103120457-01_signed.webp",
@@ -32,17 +32,17 @@
         "IMG20250403184838-01-01~2_signed.webp",
         "IMG20250819144707-01_signed.webp",
         "IMG20250822163406-01_signed.webp",
-        "_IMG2060-01_signed.webp",
-        "_IMG2321-01_signed.webp",
-        "_IMG2768-01_signed.webp",
-        "_IMG2830-01_signed.webp",
-        "_IMG2920-01_signed.webp",
-        "_IMG3440-01~2_signed.webp",
-        "_IMG3580-01_signed.webp",
-        "_IMG3756-01_signed.webp",
-        "_IMG3774-01_signed.webp",
-        "_IMG3870-01_signed.webp",
-        "_IMG6517-01_signed.webp"
+        "IMG2060-01_signed.webp",
+        "IMG2321-01_signed.webp",
+        "IMG2768-01_signed.webp",
+        "IMG2830-01_signed.webp",
+        "IMG2920-01_signed.webp",
+        "IMG3440-01~2_signed.webp",
+        "IMG3580-01_signed.webp",
+        "IMG3756-01_signed.webp",
+        "IMG3774-01_signed.webp",
+        "IMG3870-01_signed.webp",
+        "IMG6517-01_signed.webp"
     ],
     "Camera Obscura": [
         "IMG20240822175738_signed.webp",
@@ -88,7 +88,7 @@
         "IMG_20250709_232232_signed.webp",
         "IMG_20250814_221940_signed.webp",
         "IMG_20250822_232445_signed.webp",
-        "_IMG2060-01_signed.webp"
+        "IMG2060-01_signed.webp"
     ],
     "Moon": [
         "IMG20240914201917 (1)_signed.webp",
@@ -194,16 +194,16 @@
         "IMG_20250324_211952_signed.webp",
         "IMG_20250329_195527_signed.webp",
         "IMG_20250815_225338_signed.webp",
-        "_DSF0368~2_signed.webp",
-        "_DSF1022_signed.webp",
-        "_IMG0912-01_signed.webp",
-        "_IMG1100-01_signed.webp",
-        "_IMG1108-01_signed.webp",
-        "_IMG1170-01_signed.webp",
-        "_IMG1222-01_signed.webp",
-        "_IMG1231-01_signed.webp",
-        "_IMG1233-01_signed.webp",
-        "_IMG4293-01_signed.webp"
+        "DSF0368~2_signed.webp",
+        "DSF1022_signed.webp",
+        "IMG0912-01_signed.webp",
+        "IMG1100-01_signed.webp",
+        "IMG1108-01_signed.webp",
+        "IMG1170-01_signed.webp",
+        "IMG1222-01_signed.webp",
+        "IMG1231-01_signed.webp",
+        "IMG1233-01_signed.webp",
+        "IMG4293-01_signed.webp"
     ],
     "Street & Architecture": [
         "IMG20230420142644-01_signed.webp",
@@ -248,9 +248,9 @@
         "IMG20250921211430-01_signed.webp",
         "IMG_20220125_073345-01_signed.webp",
         "IMG_20250922_233432_signed.webp",
-        "_DSF0339-01_signed.webp",
-        "_DSF0884-01_signed.webp",
-        "_DSF1013-01_signed.webp",
-        "_DSF1014_signed.webp"
+        "DSF0339-01_signed.webp",
+        "DSF0884-01_signed.webp",
+        "DSF1013-01_signed.webp",
+        "DSF1014_signed.webp"
     ]
 }
