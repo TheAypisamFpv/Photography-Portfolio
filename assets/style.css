@@ -551,6 +551,12 @@ a:not(.project):hover:after {
     text-align: center;
 }
 
+.photo-item {
+    width: fit-content;
+    height: fit-content;
+    margin-bottom: -4px;
+}
+
 .photo-grid {
     display: inline-flex;
     flex-wrap: wrap;
@@ -707,18 +713,25 @@ a:not(.project):hover:after {
     }
 
     .photo-section {
-        max-width: 90%;
+        max-width:100%;
+        margin: 20px 10px 20px 10px;
         padding: 10px 10px 15px 10px;
     }
 
+    .photo-item {
+        margin-bottom: 0px;
+    }
+
     .photo-grid {
-        grid-template-columns: repeat(auto-fill, 125px);
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
         justify-content: center;
         gap: 4px;
     }
 
     .photo-grid img {
-        width: 125px;
-        height: 125px;   
+        width: 100%;
+        height: auto;
+        object-fit: cover;
     }
 }
