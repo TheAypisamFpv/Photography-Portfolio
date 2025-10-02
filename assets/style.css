@@ -295,6 +295,14 @@ body {
 img, iframe {
     width: 100%;
     border-radius: 30px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
 }
 
 iframe {
@@ -484,6 +492,45 @@ a:not(.project):hover:after {
 
 
 /* Photography Portfolio Styles */
+#toc {
+    margin: 20px auto;
+    max-width: 80%;
+    text-align: center;
+}
+
+#toc h2 {
+    font-size: 2em;
+    color: var(--header-color);
+    margin-bottom: 20px;
+}
+
+#toc ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 15px;
+}
+
+#toc li {
+    background: var(--content-background);
+    border: 2px solid var(--content-border-color);
+    border-radius: 20px;
+    padding: 10px 20px;
+    box-shadow: var(--box-shadow);
+}
+
+#toc a {
+    color: var(--text-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+#toc a:hover {
+    color: var(--link-default-color);
+}
+
 .photo-section {
     display: flex;
     flex-direction: column;
@@ -513,8 +560,8 @@ a:not(.project):hover:after {
 }
 
 .photo-grid img {
-    width: 250px;
-    height: 250px;
+    width: 225px;
+    height: 225px;
     object-fit: cover;
     border-radius: 15px;
     /* Always applies rounded corners */

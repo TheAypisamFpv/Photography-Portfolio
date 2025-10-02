@@ -122,16 +122,22 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     modal.style.left = '0';
     modal.style.width = '100%';
     modal.style.height = '100%';
+    modal.style.padding = '10px 0 10px 0'
     modal.style.backgroundColor = 'rgba(0,0,0,0.9)';
     modal.style.display = 'flex';
     modal.style.flexDirection = 'column';
     modal.style.alignItems = 'center';
-    modal.style.justifyContent = 'center';
+    modal.style.justifyContent = 'space-between';
     modal.style.zIndex = '1000';
     modal.style.cursor = 'default'; // Default cursor (arrow)
 
+    const folder = clickedImg.dataset.folder;
+    const base = clickedImg.alt;
+    const signedSrc = `imgs/${folder}/${base}_signed.webp`;
+    const txtSrc = `imgs/${folder}/${base}_signed.txt`;
+
     const img = document.createElement('img');
-    img.src = clickedImg.src.replace('_preview.webp', '_signed.webp');
+    img.src = signedSrc;
     img.onload = () => {
         const displayedWidth = img.offsetWidth;
         const displayedHeight = img.offsetHeight;
@@ -139,10 +145,11 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
         const scaleY = img.naturalHeight / displayedHeight;
         maxScale = Math.max(scaleX, scaleY) * 1.5;
     };
+    img.style.width = 'auto';
     img.style.maxWidth = '90%';
-    img.style.maxHeight = '80%'; // Leave space for metadata
+    img.style.maxHeight = '90%'; // Leave space for metadata
     img.style.objectFit = 'contain';
-    img.style.borderRadius = '0'; // No rounded corners in view mode
+    img.style.borderRadius = '5px'; // No rounded corners in view mode
     img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     img.style.transformOrigin = 'center';
     img.style.cursor = scale > 1 ? 'grab' : 'default';
@@ -193,7 +200,7 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     metadataDiv.style.fontSize = '14px';
     metadataDiv.style.textAlign = 'center';
     metadataDiv.style.maxWidth = '90%';
-    loadMetadata(clickedImg.src.replace('_preview.webp', '_signed.txt'), metadataDiv);
+    loadMetadata(txtSrc, metadataDiv);
 
     const handleMouseMove = (e) => {
         if (isDragging) {
@@ -244,18 +251,23 @@ function closeModal() {
 }
 
 function navigate(direction) {
-    console.log('Navigate called with direction', direction);
+    // console.log('Navigate called with direction', direction);
     currentIndex += direction;
     if (currentIndex < 0) currentIndex = currentImages.length - 1;
     if (currentIndex >= currentImages.length) currentIndex = 0;
-    console.log('New currentIndex', currentIndex);
+    // console.log('New currentIndex', currentIndex);
     const modalImg = document.querySelector('#image-modal img');
     const metadataDiv = document.querySelector('#image-exif');
     if (modalImg) {
         modalImg.style.display = 'none';
         metadataDiv.textContent = 'Loading next image...';
-        console.log('Setting src to', currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp'));
-        modalImg.src = currentImages[currentIndex].src.replace('_preview.webp', '_signed.webp');
+        const nextImg = currentImages[currentIndex];
+        const folder = nextImg.dataset.folder;
+        const base = nextImg.alt;
+        const signedSrc = `imgs/${folder}/${base}_signed.webp`;
+        const txtSrc = `imgs/${folder}/${base}_signed.txt`;
+        // console.log('Setting src to', signedSrc);
+        modalImg.src = signedSrc;
         modalImg.onload = () => {
             modalImg.style.display = 'block';
             const displayedWidth = modalImg.offsetWidth;
@@ -263,7 +275,7 @@ function navigate(direction) {
             const scaleX = modalImg.naturalWidth / displayedWidth;
             const scaleY = modalImg.naturalHeight / displayedHeight;
             maxScale = Math.max(scaleX, scaleY) * 1.5;
-            loadMetadata(currentImages[currentIndex].src.replace('_preview.webp', '_signed.txt'), metadataDiv);
+            loadMetadata(txtSrc, metadataDiv);
         };
         scale = 1;
         translateX = 0;

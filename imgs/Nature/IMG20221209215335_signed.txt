@@ -1,0 +1,1 @@
+DNG image - EXIF extraction not supported
