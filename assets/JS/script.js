@@ -82,6 +82,9 @@ let swipeContainer;
 let swipeThreshold = 100; // Pixels to trigger navigation
 let animationFrame;
 
+// Wrapper references for performance
+let prevWrapper, currentWrapper, nextWrapper;
+
 // Flag to prevent loop in back button handling
 let isClosingByBack = false;
 
@@ -198,30 +201,22 @@ function updateSwipePosition() {
         animationFrame = requestAnimationFrame(() => {
             swipeContainer.style.transition = 'none';
             swipeContainer.style.transform = `translateX(${-window.innerWidth + swipeDeltaX}px)`;
-            console.log('Swipe Position:', {
-                swipeDeltaX,
-                transform: swipeContainer.style.transform,
-                currentIndex,
-                images: Array.from(swipeContainer.querySelectorAll('img')).map(img => img.src)
-            });
         });
     }
 }
 
 function handleSwipeEnd() {
     if (swipeContainer) {
-        swipeContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+        swipeContainer.style.transition = 'transform 0.2s cubic-bezier(0.4, 0, 0.2, 1)';
         const viewportWidth = window.innerWidth;
         if (Math.abs(swipeDeltaX) > swipeThreshold) {
             const direction = swipeDeltaX < 0 ? 1 : -1; // Swipe left (negative) = next (+1), right (positive) = prev (-1)
             swipeContainer.style.transform = `translateX(${-window.innerWidth - direction * viewportWidth}px)`;
-            console.log('Swipe End:', { direction, swipeDeltaX, targetTransform: swipeContainer.style.transform });
             setTimeout(() => {
                 navigate(direction);
-            }, 300);
+            }, 200);
         } else {
             swipeContainer.style.transform = `translateX(${-viewportWidth}px)`;
-            console.log('Swipe End: Snap back', { swipeDeltaX, targetTransform: swipeContainer.style.transform });
         }
         swipeDeltaX = 0;
     }
@@ -304,22 +299,13 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     // swipeContainer.style.border = '2px solid yellow'; // Debugging
 
     const viewportWidth = window.innerWidth;
-    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, 0);
-    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, viewportWidth);
-    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, viewportWidth * 2);
+    prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, 0);
+    currentWrapper = createImageWrapper(getImageData(currentIndex), true, viewportWidth);
+    nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, viewportWidth * 2);
 
     swipeContainer.appendChild(prevWrapper);
     swipeContainer.appendChild(currentWrapper);
     swipeContainer.appendChild(nextWrapper);
-
-    // Log wrapper positions and image sources for debugging
-    console.log('Wrapper Positions:', {
-        prev: { left: prevWrapper.style.left, src: prevWrapper.querySelector('img').src },
-        current: { left: currentWrapper.style.left, src: currentWrapper.querySelector('img').src },
-        next: { left: nextWrapper.style.left, src: nextWrapper.querySelector('img').src },
-        swipeContainerTransform: swipeContainer.style.transform,
-        currentIndex
-    });
 
     swipeContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
     swipeContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -442,15 +428,21 @@ function createImageWrapper(imageData, isCurrent = false, leftPixels = 0) {
     return wrapper;
 }
 
-function getImageData(index) {
-    const adjustedIndex = (index + currentImages.length) % currentImages.length;
-    const imgElem = currentImages[adjustedIndex];
-    const folder = imgElem.dataset.folder;
-    const base = imgElem.alt;
-    return {
-        signedSrc: `imgs/${folder}/${base}_signed.webp`,
-        txtSrc: `imgs/${folder}/${base}_signed.txt`
-    };
+function updateWrapper(wrapper, imageData, isCurrent, leftPixels) {
+    const img = wrapper.querySelector('img');
+    const exifDiv = wrapper.querySelector('.exif-text');
+    
+    img.src = imageData.signedSrc;
+    img.classList.toggle('current-img', isCurrent);
+    wrapper.style.left = `${leftPixels}px`;
+    
+    if (isCurrent) {
+        img.onload = () => {
+            updateMaxScale(img);
+        };
+    }
+    
+    loadMetadata(imageData.txtSrc, exifDiv, isCurrent);
 }
 
 function updateMaxScale(img) {
@@ -495,6 +487,9 @@ function closeModal() {
     const modal = document.getElementById('image-modal');
     if (modal) modal.remove();
     swipeContainer = null;
+    prevWrapper = null;
+    currentWrapper = null;
+    nextWrapper = null;
     // Pop the history state if not already handled by back button
     if (!isClosingByBack && history.state && history.state.modalOpen) {
         history.back();
@@ -503,25 +498,11 @@ function closeModal() {
 
 function navigate(direction) {
     currentIndex = (currentIndex + direction + currentImages.length) % currentImages.length;
-    swipeContainer.innerHTML = '';
+    
     const viewportWidth = window.innerWidth;
-    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, 0);
-    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, viewportWidth);
-    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, viewportWidth * 2);
-
-    swipeContainer.appendChild(prevWrapper);
-    swipeContainer.appendChild(currentWrapper);
-    swipeContainer.appendChild(nextWrapper);
-
-    // Log wrapper positions and image sources for debugging
-    console.log('Wrapper Positions after navigate:', {
-        prev: { left: prevWrapper.style.left, src: prevWrapper.querySelector('img').src },
-        current: { left: currentWrapper.style.left, src: currentWrapper.querySelector('img').src },
-        next: { left: nextWrapper.style.left, src: nextWrapper.querySelector('img').src },
-        swipeContainerTransform: swipeContainer.style.transform,
-        currentIndex,
-        direction
-    });
+    updateWrapper(prevWrapper, getImageData(currentIndex - 1), false, 0);
+    updateWrapper(currentWrapper, getImageData(currentIndex), true, viewportWidth);
+    updateWrapper(nextWrapper, getImageData(currentIndex + 1), false, viewportWidth * 2);
 
     swipeContainer.style.transition = 'none';
     swipeContainer.style.transform = `translateX(${-viewportWidth}px)`;
@@ -535,6 +516,17 @@ function navigate(direction) {
     preloadAdjacentContent();
 }
 
+function getImageData(index) {
+    const adjustedIndex = (index + currentImages.length) % currentImages.length;
+    const imgElem = currentImages[adjustedIndex];
+    const folder = imgElem.dataset.folder;
+    const base = imgElem.alt;
+    return {
+        signedSrc: `imgs/${folder}/${base}_signed.webp`,
+        txtSrc: `imgs/${folder}/${base}_signed.txt`
+    };
+}
+
 function preloadAdjacentContent() {
     const prevData = getImageData(currentIndex - 1);
     const nextData = getImageData(currentIndex + 1);
@@ -544,10 +536,6 @@ function preloadAdjacentContent() {
     preloadImage(nextData.signedSrc);
     preloadImage(prevData2.signedSrc);
     preloadImage(nextData2.signedSrc);
-    preloadMetadata(prevData.txtSrc);
-    preloadMetadata(nextData.txtSrc);
-    preloadMetadata(prevData2.txtSrc);
-    preloadMetadata(nextData2.txtSrc);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
