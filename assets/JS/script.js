@@ -8,25 +8,12 @@ window.onload = function () {
     });
 };
 
-let lastScrollTop = 0;
-const header = document.getElementById('header');
-
-if (header) {
-    window.addEventListener('scroll', function () {
-        let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-        if (scrollTop > lastScrollTop && scrollTop > 50) {
-            header.classList.add('header-hide');
-        } else if (scrollTop < lastScrollTop) {
-            header.classList.remove('header-hide');
-        }
-        lastScrollTop = scrollTop;
-    });
-}
-
 document.addEventListener('DOMContentLoaded', function () {
     const currentYear = new Date().getFullYear();
     const footerCredits = document.querySelector('.footer_credits p');
-    footerCredits.textContent = `© ${currentYear} TheAypisamFpv`;
+    if (footerCredits) {
+        footerCredits.textContent = `© ${currentYear} TheAypisamFpv`;
+    }
 
     // Theme switcher
     const themeSwitcher = document.getElementById('theme-switcher');
@@ -51,6 +38,21 @@ document.addEventListener('DOMContentLoaded', function () {
                 sunIcon.classList.remove('shown');
                 sunIcon.classList.add('hidden');
             }
+        });
+    }
+
+    // Header hide functionality
+    const header = document.getElementById('header');
+    let lastScrollTop = 0;
+    if (header) {
+        window.addEventListener('scroll', function () {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > lastScrollTop && scrollTop > 50) {
+                header.classList.add('header-hide');
+            } else if (scrollTop < lastScrollTop) {
+                header.classList.remove('header-hide');
+            }
+            lastScrollTop = scrollTop;
         });
     }
 });
@@ -87,6 +89,24 @@ function preloadImage(src) {
     img.src = src;
 }
 
+function preloadMetadata(txtUrl) {
+    if (!metadataCache.has(txtUrl)) {
+        fetch(txtUrl)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('File not found');
+                }
+                return response.text();
+            })
+            .then(text => {
+                metadataCache.set(txtUrl, text.trim());
+            })
+            .catch(() => {
+                metadataCache.set(txtUrl, 'EXIF not available');
+            });
+    }
+}
+
 function getDistance(touch1, touch2) {
     return Math.sqrt((touch1.clientX - touch2.clientX) ** 2 + (touch1.clientY - touch2.clientY) ** 2);
 }
@@ -98,13 +118,9 @@ function handleTouchStart(e) {
         swipeStartX = e.touches[0].clientX;
         isDragging = false;
         isSwiping = scale === 1;
-        if (isSwiping) {
-            setAdjacentOpacity(0.5);
-        }
     } else if (e.touches.length === 2) {
         isPinching = true;
         isSwiping = false;
-        setAdjacentOpacity(0);
         const touch1 = e.touches[0];
         const touch2 = e.touches[1];
         initialDistance = getDistance(touch1, touch2);
@@ -178,7 +194,13 @@ function updateSwipePosition() {
         cancelAnimationFrame(animationFrame);
         animationFrame = requestAnimationFrame(() => {
             swipeContainer.style.transition = 'none';
-            swipeContainer.style.transform = `translateX(${swipeDeltaX}px)`;
+            swipeContainer.style.transform = `translateX(${-window.innerWidth + swipeDeltaX}px)`;
+            console.log('Swipe Position:', {
+                swipeDeltaX,
+                transform: swipeContainer.style.transform,
+                currentIndex,
+                images: Array.from(swipeContainer.querySelectorAll('img')).map(img => img.src)
+            });
         });
     }
 }
@@ -188,37 +210,26 @@ function handleSwipeEnd() {
         swipeContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
         const viewportWidth = window.innerWidth;
         if (Math.abs(swipeDeltaX) > swipeThreshold) {
-            const direction = swipeDeltaX < 0 ? 1 : -1;
-            swipeContainer.style.transform = `translateX(${direction > 0 ? -viewportWidth : viewportWidth}px)`;
+            const direction = swipeDeltaX < 0 ? 1 : -1; // Swipe left (negative) = next (+1), right (positive) = prev (-1)
+            swipeContainer.style.transform = `translateX(${-window.innerWidth - direction * viewportWidth}px)`;
+            console.log('Swipe End:', { direction, swipeDeltaX, targetTransform: swipeContainer.style.transform });
             setTimeout(() => {
                 navigate(direction);
-                setAdjacentOpacity(0);
             }, 300);
         } else {
-            swipeContainer.style.transform = 'translateX(0)';
-            setTimeout(() => {
-                setAdjacentOpacity(0);
-            }, 300);
+            swipeContainer.style.transform = `translateX(${-viewportWidth}px)`;
+            console.log('Swipe End: Snap back', { swipeDeltaX, targetTransform: swipeContainer.style.transform });
         }
         swipeDeltaX = 0;
     }
 }
 
-function setAdjacentOpacity(opacity) {
-    const wrappers = swipeContainer.querySelectorAll('div');
-    wrappers.forEach((wrapper, index) => {
-        if (index !== 1) {
-            wrapper.style.opacity = opacity;
-        }
-    });
-}
-
-function loadMetadata(txtUrl, metadataDiv) {
+function loadMetadata(txtUrl, metadataDiv, isCurrent = false) {
+    metadataDiv.textContent = isCurrent ? 'Loading EXIF...' : '';
     if (metadataCache.has(txtUrl)) {
         metadataDiv.textContent = metadataCache.get(txtUrl);
         return;
     }
-    metadataDiv.textContent = 'Loading EXIF...';
     fetch(txtUrl)
         .then(response => {
             if (!response.ok) {
@@ -233,7 +244,7 @@ function loadMetadata(txtUrl, metadataDiv) {
         })
         .catch(() => {
             metadataCache.set(txtUrl, 'EXIF not available');
-            metadataDiv.textContent = 'EXIF not available';
+            metadataDiv.textContent = isCurrent ? 'EXIF not available' : '';
         });
 }
 
@@ -249,23 +260,24 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     swipeDeltaX = 0;
     document.body.style.overflow = 'hidden';
 
-    preloadAdjacentImages();
+    preloadAdjacentContent();
 
     const modal = document.createElement('div');
     modal.id = 'image-modal';
     modal.style.position = 'fixed';
     modal.style.top = '0';
     modal.style.left = '0';
-    modal.style.width = '100%';
-    modal.style.height = '100%';
-    modal.style.padding = '10px 0';
+    modal.style.width = '100vw';
+    modal.style.height = '100vh';
+    modal.style.padding = '0';
+    modal.style.margin = '0';
     modal.style.backgroundColor = 'rgba(0,0,0,0.9)';
     modal.style.display = 'flex';
     modal.style.flexDirection = 'column';
     modal.style.alignItems = 'center';
     modal.style.justifyContent = 'space-between';
     modal.style.zIndex = '1000';
-    modal.style.overflow = 'hidden';
+    modal.style.transform = 'none';
 
     const titleDiv = document.createElement('div');
     titleDiv.textContent = sectionName;
@@ -276,29 +288,32 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     titleDiv.style.zIndex = '1001';
 
     swipeContainer = document.createElement('div');
-    swipeContainer.style.position = 'relative';
-    swipeContainer.style.width = '100%';
-    swipeContainer.style.height = '90%';
-    swipeContainer.style.transform = 'translateX(0)';
+    swipeContainer.style.position = 'absolute';
+    swipeContainer.style.top = '0';
+    swipeContainer.style.left = '0';
+    swipeContainer.style.width = `${window.innerWidth * 3}px`; // Accommodate prev, current, next
+    swipeContainer.style.height = '100%';
+    swipeContainer.style.transform = `translateX(${-window.innerWidth}px)`; // Center current image
     swipeContainer.style.transition = 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+    // swipeContainer.style.border = '2px solid yellow'; // Debugging
 
-    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, -100);
-    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, 0);
-    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, 100);
+    const viewportWidth = window.innerWidth;
+    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, 0);
+    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, viewportWidth);
+    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, viewportWidth * 2);
 
     swipeContainer.appendChild(prevWrapper);
     swipeContainer.appendChild(currentWrapper);
     swipeContainer.appendChild(nextWrapper);
 
-    const metadataDiv = document.createElement('div');
-    metadataDiv.id = 'image-exif';
-    metadataDiv.style.marginTop = '10px';
-    metadataDiv.style.color = 'white';
-    metadataDiv.style.fontSize = '14px';
-    metadataDiv.style.textAlign = 'center';
-    metadataDiv.style.maxWidth = '90%';
-    metadataDiv.style.zIndex = '1001';
-    loadMetadata(getImageData(currentIndex).txtSrc, metadataDiv);
+    // Log wrapper positions and image sources for debugging
+    console.log('Wrapper Positions:', {
+        prev: { left: prevWrapper.style.left, src: prevWrapper.querySelector('img').src },
+        current: { left: currentWrapper.style.left, src: currentWrapper.querySelector('img').src },
+        next: { left: nextWrapper.style.left, src: nextWrapper.querySelector('img').src },
+        swipeContainerTransform: swipeContainer.style.transform,
+        currentIndex
+    });
 
     swipeContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
     swipeContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
@@ -342,7 +357,8 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     const nextBtn = document.createElement('a');
     nextBtn.innerHTML = '&#10095;';
     nextBtn.className = 'next';
-    prevBtn.style.position = 'absolute';
+    nextBtn.style.zIndex = '1001';
+    nextBtn.style.position = 'absolute';
     nextBtn.style.right = '10px';
     nextBtn.style.top = '50%';
     nextBtn.style.transform = 'translateY(-50%)';
@@ -354,7 +370,6 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     modal.appendChild(prevBtn);
     modal.appendChild(titleDiv);
     modal.appendChild(swipeContainer);
-    modal.appendChild(metadataDiv);
     modal.appendChild(nextBtn);
     document.body.appendChild(modal);
 
@@ -365,26 +380,26 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
             closeModal();
         }
     });
-
-    setAdjacentOpacity(0);
 }
 
-function createImageWrapper(imageData, isCurrent = false, leftPercent = 0) {
+function createImageWrapper(imageData, isCurrent = false, leftPixels = 0) {
     const wrapper = document.createElement('div');
     wrapper.style.position = 'absolute';
     wrapper.style.top = '0';
-    wrapper.style.left = `${leftPercent}%`;
-    wrapper.style.width = '100%';
+    wrapper.style.left = `${leftPixels}px`;
+    wrapper.style.width = `${window.innerWidth}px`;
     wrapper.style.height = '100%';
     wrapper.style.display = 'flex';
+    wrapper.style.flexDirection = 'column';
     wrapper.style.alignItems = 'center';
     wrapper.style.justifyContent = 'center';
     wrapper.style.boxSizing = 'border-box';
+    // wrapper.style.border = '2px solid red'; // Debugging
 
     const img = document.createElement('img');
     img.src = imageData.signedSrc;
     img.style.maxWidth = '90%';
-    img.style.maxHeight = '90%';
+    img.style.maxHeight = '80%';
     img.style.width = 'auto';
     img.style.height = 'auto';
     img.style.objectFit = 'contain';
@@ -393,7 +408,20 @@ function createImageWrapper(imageData, isCurrent = false, leftPercent = 0) {
     img.style.transformOrigin = 'center';
     img.style.cursor = 'default';
     img.style.display = 'block';
-    img.style.margin = 'auto';
+    img.style.margin = '0 auto';
+    img.style.opacity = '1';
+    // img.style.border = '2px solid blue'; // Debugging
+
+    const exifDiv = document.createElement('div');
+    exifDiv.className = 'exif-text';
+    exifDiv.style.color = 'white';
+    exifDiv.style.fontSize = '14px';
+    exifDiv.style.textAlign = 'center';
+    exifDiv.style.maxWidth = '90%';
+    exifDiv.style.marginTop = '10px';
+    exifDiv.style.opacity = '1';
+    // exifDiv.style.border = '2px solid green'; // Debugging
+    loadMetadata(imageData.txtSrc, exifDiv, isCurrent);
 
     if (isCurrent) {
         img.classList.add('current-img');
@@ -403,6 +431,7 @@ function createImageWrapper(imageData, isCurrent = false, leftPercent = 0) {
     }
 
     wrapper.appendChild(img);
+    wrapper.appendChild(exifDiv);
     return wrapper;
 }
 
@@ -435,7 +464,6 @@ function handleWheel(e) {
         translateY = 0;
     }
     updateImageTransform();
-    setAdjacentOpacity(0);
 }
 
 function handleDblClick() {
@@ -443,7 +471,6 @@ function handleDblClick() {
     translateX = 0;
     translateY = 0;
     updateImageTransform();
-    setAdjacentOpacity(0);
 }
 
 function handleMouseDown(e) {
@@ -465,21 +492,28 @@ function closeModal() {
 
 function navigate(direction) {
     currentIndex = (currentIndex + direction + currentImages.length) % currentImages.length;
-    const metadataDiv = document.querySelector('#image-exif');
-    metadataDiv.textContent = 'Loading next image...';
-
     swipeContainer.innerHTML = '';
-    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, -100);
-    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, 0);
-    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, 100);
+    const viewportWidth = window.innerWidth;
+    const prevWrapper = createImageWrapper(getImageData(currentIndex - 1), false, 0);
+    const currentWrapper = createImageWrapper(getImageData(currentIndex), true, viewportWidth);
+    const nextWrapper = createImageWrapper(getImageData(currentIndex + 1), false, viewportWidth * 2);
+
     swipeContainer.appendChild(prevWrapper);
     swipeContainer.appendChild(currentWrapper);
     swipeContainer.appendChild(nextWrapper);
 
-    swipeContainer.style.transition = 'none';
-    swipeContainer.style.transform = 'translateX(0)';
+    // Log wrapper positions and image sources for debugging
+    console.log('Wrapper Positions after navigate:', {
+        prev: { left: prevWrapper.style.left, src: prevWrapper.querySelector('img').src },
+        current: { left: currentWrapper.style.left, src: currentWrapper.querySelector('img').src },
+        next: { left: nextWrapper.style.left, src: nextWrapper.querySelector('img').src },
+        swipeContainerTransform: swipeContainer.style.transform,
+        currentIndex,
+        direction
+    });
 
-    loadMetadata(getImageData(currentIndex).txtSrc, metadataDiv);
+    swipeContainer.style.transition = 'none';
+    swipeContainer.style.transform = `translateX(${-viewportWidth}px)`;
 
     scale = 1;
     translateX = 0;
@@ -487,11 +521,10 @@ function navigate(direction) {
     updateImageTransform();
     updateCursor();
 
-    setAdjacentOpacity(0);
-    preloadAdjacentImages();
+    preloadAdjacentContent();
 }
 
-function preloadAdjacentImages() {
+function preloadAdjacentContent() {
     const prevData = getImageData(currentIndex - 1);
     const nextData = getImageData(currentIndex + 1);
     const prevData2 = getImageData(currentIndex - 2);
@@ -500,6 +533,10 @@ function preloadAdjacentImages() {
     preloadImage(nextData.signedSrc);
     preloadImage(prevData2.signedSrc);
     preloadImage(nextData2.signedSrc);
+    preloadMetadata(prevData.txtSrc);
+    preloadMetadata(nextData.txtSrc);
+    preloadMetadata(prevData2.txtSrc);
+    preloadMetadata(nextData2.txtSrc);
 }
 
 document.addEventListener('DOMContentLoaded', function () {
