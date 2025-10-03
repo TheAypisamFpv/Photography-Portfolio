@@ -82,6 +82,9 @@ let swipeContainer;
 let swipeThreshold = 100; // Pixels to trigger navigation
 let animationFrame;
 
+// Flag to prevent loop in back button handling
+let isClosingByBack = false;
+
 const metadataCache = new Map();
 
 function preloadImage(src) {
@@ -260,6 +263,9 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     swipeDeltaX = 0;
     document.body.style.overflow = 'hidden';
 
+    // Push history state for back button handling
+    history.pushState({ modalOpen: true }, '');
+
     preloadAdjacentContent();
 
     const modal = document.createElement('div');
@@ -323,6 +329,15 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     swipeContainer.addEventListener('dblclick', handleDblClick);
     swipeContainer.addEventListener('mousedown', handleMouseDown);
 
+    // Add click to close when tapping outside image on wrapper
+    swipeContainer.addEventListener('click', (e) => {
+        if (scale === 1 && e.target.tagName === 'DIV' && e.target.parentElement === swipeContainer && e.target.querySelector('.current-img')) {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            closeModal();
+        }
+    });
+
     const handleMouseMove = (e) => {
         if (isDragging && scale > 1) {
             translateX = e.clientX - startX;
@@ -372,14 +387,6 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     modal.appendChild(swipeContainer);
     modal.appendChild(nextBtn);
     document.body.appendChild(modal);
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            closeModal();
-        }
-    });
 }
 
 function createImageWrapper(imageData, isCurrent = false, leftPixels = 0) {
@@ -488,6 +495,10 @@ function closeModal() {
     const modal = document.getElementById('image-modal');
     if (modal) modal.remove();
     swipeContainer = null;
+    // Pop the history state if not already handled by back button
+    if (!isClosingByBack && history.state && history.state.modalOpen) {
+        history.back();
+    }
 }
 
 function navigate(direction) {
@@ -566,5 +577,13 @@ document.addEventListener('keydown', (e) => {
         } else if (e.key === 'Escape') {
             closeModal();
         }
+    }
+});
+
+window.addEventListener('popstate', (e) => {
+    if (document.getElementById('image-modal') && e.state && e.state.modalOpen) {
+        isClosingByBack = true;
+        closeModal();
+        isClosingByBack = false;
     }
 });
