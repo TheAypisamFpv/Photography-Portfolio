@@ -180,9 +180,12 @@ function handleTouchEnd(e) {
     }
 }
 
+let zoomTransitionDuration = '0.15s'; // Adjust this value to change smoothing amount (e.g., '0.05s' for less, '0.3s' for more)
+
 function updateImageTransform() {
     const img = document.querySelector('#image-modal .current-img');
     if (img) {
+        img.style.transition = `transform ${zoomTransitionDuration} ease`; // Apply smoothing
         img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
         updateCursor();
     }
