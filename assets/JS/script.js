@@ -80,8 +80,85 @@ let isDragging = false;
 let startX, startY;
 let maxScale = 1.5; // Default, will be updated per image
 
+// Touch handling variables
+let isPinching = false;
+let initialDistance = 0;
+let initialScale = 1;
+let touchStartX = 0;
+let touchStartY = 0;
+
 // Cache for metadata to avoid repeated fetches
 const metadataCache = new Map();
+
+function preloadImage(src) {
+    const img = new Image();
+    img.src = src;
+}
+
+function getDistance(touch1, touch2) {
+    return Math.sqrt((touch1.clientX - touch2.clientX) ** 2 + (touch1.clientY - touch2.clientY) ** 2);
+}
+
+function handleTouchStart(e) {
+    if (e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isDragging = false;
+    } else if (e.touches.length === 2) {
+        isPinching = true;
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        initialDistance = getDistance(touch1, touch2);
+        initialScale = scale;
+        e.preventDefault();
+    }
+}
+
+function handleTouchMove(e) {
+    const img = e.target;
+    if (isPinching && e.touches.length === 2) {
+        e.preventDefault();
+        const touch1 = e.touches[0];
+        const touch2 = e.touches[1];
+        const distance = getDistance(touch1, touch2);
+        scale = initialScale * (distance / initialDistance);
+        scale = Math.max(1, Math.min(maxScale, scale));
+        if (scale === 1) {
+            translateX = 0;
+            translateY = 0;
+        }
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+        img.style.cursor = scale > 1 ? 'grab' : 'default';
+    } else if (e.touches.length === 1 && scale > 1) {
+        if (!isDragging) {
+            isDragging = true;
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        }
+        translateX = e.touches[0].clientX - startX;
+        translateY = e.touches[0].clientY - startY;
+        img.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+}
+
+function handleTouchEnd(e) {
+    const img = e.target;
+    if (isPinching) {
+        isPinching = false;
+    }
+    if (isDragging) {
+        isDragging = false;
+        img.style.cursor = scale > 1 ? 'grab' : 'default';
+    }
+    if (e.changedTouches.length === 1 && !isPinching && scale === 1) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const deltaX = touchEndX - touchStartX;
+        const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        if (Math.abs(deltaX) > 50 && Math.abs(deltaX) > deltaY) {
+            navigate(deltaX > 0 ? -1 : 1);
+        }
+    }
+}
 
 function loadMetadata(txtUrl, metadataDiv) {
     if (metadataCache.has(txtUrl)) {
@@ -114,7 +191,16 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
     translateX = 0; // Reset position
     translateY = 0;
     isDragging = false;
+    isPinching = false;
     document.body.style.overflow = 'hidden'; // Prevent background scrolling
+
+    // Preload adjacent images
+    const prevIndex = currentIndex > 0 ? currentIndex - 1 : currentImages.length - 1;
+    const nextIndex = currentIndex < currentImages.length - 1 ? currentIndex + 1 : 0;
+    const prevImg = currentImages[prevIndex];
+    const nextImg = currentImages[nextIndex];
+    preloadImage(`imgs/${prevImg.dataset.folder}/${prevImg.alt}_signed.webp`);
+    preloadImage(`imgs/${nextImg.dataset.folder}/${nextImg.alt}_signed.webp`);
     const modal = document.createElement('div');
     modal.id = 'image-modal';
     modal.style.position = 'fixed';
@@ -138,6 +224,7 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
 
     const img = document.createElement('img');
     img.src = signedSrc;
+    img.style.opacity = '1';
     img.onload = () => {
         const displayedWidth = img.offsetWidth;
         const displayedHeight = img.offsetHeight;
@@ -184,6 +271,11 @@ function openModal(clickedImg, imagesArray, index, sectionName) {
             e.preventDefault();
         }
     });
+
+    // Touch event listeners for mobile
+    img.addEventListener('touchstart', handleTouchStart, { passive: false });
+    img.addEventListener('touchmove', handleTouchMove, { passive: false });
+    img.addEventListener('touchend', handleTouchEnd, { passive: false });
 
     const titleDiv = document.createElement('div');
     titleDiv.textContent = sectionName;
@@ -259,30 +351,45 @@ function navigate(direction) {
     const modalImg = document.querySelector('#image-modal img');
     const metadataDiv = document.querySelector('#image-exif');
     if (modalImg) {
-        modalImg.style.display = 'none';
+        // Smooth transition
+        modalImg.style.transition = 'opacity 0.3s ease';
+        modalImg.style.opacity = '0';
         metadataDiv.textContent = 'Loading next image...';
-        const nextImg = currentImages[currentIndex];
-        const folder = nextImg.dataset.folder;
-        const base = nextImg.alt;
-        const signedSrc = `imgs/${folder}/${base}_signed.webp`;
-        const txtSrc = `imgs/${folder}/${base}_signed.txt`;
-        // console.log('Setting src to', signedSrc);
-        modalImg.src = signedSrc;
-        modalImg.onload = () => {
-            modalImg.style.display = 'block';
-            const displayedWidth = modalImg.offsetWidth;
-            const displayedHeight = modalImg.offsetHeight;
-            const scaleX = modalImg.naturalWidth / displayedWidth;
-            const scaleY = modalImg.naturalHeight / displayedHeight;
-            maxScale = Math.max(scaleX, scaleY) * 1.5;
-            loadMetadata(txtSrc, metadataDiv);
-        };
-        scale = 1;
-        translateX = 0;
-        translateY = 0;
-        modalImg.style.transformOrigin = 'center';
-        modalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        modalImg.style.cursor = 'default';
+        setTimeout(() => {
+            const nextImg = currentImages[currentIndex];
+            const folder = nextImg.dataset.folder;
+            const base = nextImg.alt;
+            const signedSrc = `imgs/${folder}/${base}_signed.webp`;
+            const txtSrc = `imgs/${folder}/${base}_signed.txt`;
+            // console.log('Setting src to', signedSrc);
+            modalImg.src = signedSrc;
+            modalImg.onload = () => {
+                modalImg.style.opacity = '1';
+                setTimeout(() => {
+                    modalImg.style.transition = '';
+                }, 300);
+                const displayedWidth = modalImg.offsetWidth;
+                const displayedHeight = modalImg.offsetHeight;
+                const scaleX = modalImg.naturalWidth / displayedWidth;
+                const scaleY = modalImg.naturalHeight / displayedHeight;
+                maxScale = Math.max(scaleX, scaleY) * 1.5;
+                loadMetadata(txtSrc, metadataDiv);
+            };
+            scale = 1;
+            translateX = 0;
+            translateY = 0;
+            modalImg.style.transformOrigin = 'center';
+            modalImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+            modalImg.style.cursor = 'default';
+
+            // Preload new adjacent
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : currentImages.length - 1;
+            const nextIndex2 = currentIndex < currentImages.length - 1 ? currentIndex + 1 : 0;
+            const prevImg = currentImages[prevIndex];
+            const nextImg2 = currentImages[nextIndex2];
+            preloadImage(`imgs/${prevImg.dataset.folder}/${prevImg.alt}_signed.webp`);
+            preloadImage(`imgs/${nextImg2.dataset.folder}/${nextImg2.alt}_signed.webp`);
+        }, 150);
     }
 }
 
